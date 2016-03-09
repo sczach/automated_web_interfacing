@@ -64,36 +64,8 @@ def webnav_to_region(region):
     browser.find_element_by_css_selector('.picker > blockquote:nth-child(1) > label:nth-child(29)').click()    
     # click volunteers
     browser.find_element_by_css_selector('.picker > blockquote:nth-child(1) > label:nth-child(26)').click()
-    
-    # check if the nearest area prompt comes up    
-    if browser.find_element_by_xpath("//*[contains(text(), 'choose nearest area')] | //*[@value='choose nearest area']"):
-        print('subregions found')
-        print('looking for number of subregions')
-        i = 0
-        # choose nearest area
-        # select first choice
-        # assume no more than seven subregions
-        # determine how many subregions there are
-        for subregion in range(1, 15, 2): # subregion identifiers come in odd numbers only
-            try:
-                browser.find_element_by_css_selector('.picker > blockquote:nth-child(1) > label:nth-child(' + \
-                                                    str(subregion) + ') > input:nth-child(1)')
-                i += 1
-                print('subregion %i found') % (i)
-
-                print('looking for another') % (i)
-            except:
-                pass
-        print('no more subregions to log, proceeding to select subregion')
-        print('number of subregions is: ' + str(i))
-#        webnav_to_subregion(region, i) # use this function to select subregions
-        # I've rerouted this because I don't need to post to all subregions in a given area
-        # Posts still show up in the larger area if they are in any of the subregions
-        
-    else:
-        print('no subregions, proceeding to post information')
-        
     # defaults to biggest area -- first choice
+
     try:
         print('skipping subregion dialogue, choosing first choice for subregion')
         browser.find_element_by_css_selector('.picker > blockquote:nth-child(1) > label:nth-child(1) > input:nth-child(1)').click()
@@ -107,9 +79,6 @@ def webnav_to_region(region):
     except:
         print('no subregion dialogue found')
         pass
-
-
-        
 
 #####################    
 # select subregions #
@@ -222,40 +191,29 @@ def data_entry(region, email_address, title, body_text, zip_code):
     # hit submit button to not post images
     browser.find_element_by_css_selector('.done').click()    
 
-
     # log information to output    
-    todays_date = datetime.date.fromordinal(730920).strftime('%m/%d/%y')
+    todays_date = datetime.date.fromordinal(730918).strftime('%m/%d/%y')
     
     # log date of posting
     f_out.write(str(todays_date))
     print('date written to file: %s') % (todays_date)
+    f_out.write(str(posting_day) + ',' + str(renewal_group) + ',' + str(region) + ',' + str(state) + ',' + \
+                str(zip_code) + ',' + str(name) + ',' + str(email_address) + ','  + str(title) + ',' + \
+                str(body_text) + ',' + str(link) + '\n')
+    print('all input information posted to output file')
+    print('need to add confirmation link to file')
 
-    # hit final submit button    
-    browser.find_element_by_css_selector('.bigbutton') # add .click() to this to finish posting
-    
-    # feedback prints
+    # hit final submit button
+    try:    
+        browser.find_element_by_css_selector('.bigbutton').click() # add .click() to this to finish posting
+        print('bigbutton css element found')
+    except:
+        browser.find_element_by_css_selector('.button').click()
+        print('button css element found')
+    else:
+        pass
     print('%s posted') % (region)
 
-
-
-##########################
-# store region posted to #
-##########################
-
-
-##############################################
-# store confirmation information in csv file #
-##############################################
-'''
-dtg of posting
-url for confirmation
-if it needs a phone number
-'''
-
-
-############################################################
-# forward all confirmation emails to central email address #
-############################################################
 
 
 
@@ -267,26 +225,25 @@ import time
 
 browser = webdriver.Firefox() # define browser object
 
-
-f_in = open("C:\Users\Zachary\python_scripts\craigslist_test.csv", 'r')
+f_in = open("C:\\Users\\Zachary\\OneDrive\\Documents\\4. Technical\\Programming\\Python\\Arianna's CEO postings\\input\\day_1.csv", 'r')
 data = csv.DictReader(f_in)
 
-f_out = open("C:\Users\Zachary\python_scripts\craigslist_test_output.csv", 'w')
-f_out.write('email,region,zip,date,confirmation_link\n')
-
+f_out = open("C:\\Users\\Zachary\\OneDrive\\Documents\\4. Technical\\Programming\\Python\\Arianna's CEO postings\\output\\day_1.csv", 'w')
+f_out.write('posting_date,posting_day,renewal_group,region,state,zip,name,email,title,body,posting_link,confirmation_link\n')
 
 for row in data:
-    email_address = row['email'].lower()
-    region = row['region'].lower()
-    zip_code = row['zip']
-    link = row['link']
-    title = row['title']
-    body_text = row['body']
+    region = row['Region'] # originally had this with a .lower() method but link text is case specific in selenium apparently
+    state = row['State'].lower()
+    zip_code = row['Zip']
+    email_address = row['Emails'].lower()
+    body_text = row['Body']
+    link = row['Posting Link']
+    title = row['Title']
+    posting_day = row['Posting Day']
+    renewal_group = row['Renewal Group'] 
+    name = row['Name'].lower()
     
-    print('writing: %s, %s, %s to file') % (email_address, region, zip_code)
-    f_out.write(str(email_address) + ',' + str(region) + ',' + str(zip_code)) # still to post: date, confirmation link provided by craigslist
-    print('%s, %s, %s, written to file') % (email_address, region, zip_code)
-
+    
     print('navigating to %s dialogue') % (region)
     webnav_to_region(region)
     
@@ -294,9 +251,56 @@ for row in data:
     data_entry(region, email_address, title, body_text, zip_code)
     print('data entry function for %s complete') % (region)
     print('**************')
-    time.sleep(3)
+    time.sleep(1)
 
 browser.quit()
 f_in.close()
 f_out.close()
-print('program complete. congrats!')
+print('posting complete. congrats!')
+
+
+
+
+
+##############################################
+# store confirmation information in csv file #
+##############################################
+
+# confirmation renewals
+'''
+open link in new window
+click renew posting link
+checks to see if there is no post to renew to see if the post been flagged or deleted
+if flagged or deleted, fills a cell in output
+'''
+#f_in = open("C:\Users\Zachary\python_scripts\craigslist_test_output.csv", 'r')
+#data = csv.DictReader(f_in)
+#f_out = open("C:\Users\Zachary\python_scripts\renewal_tracker.csv", 'w')
+#
+#for row in data:
+#    email_address = row['email'].lower()
+#    region = row['region'].lower()
+#    state = row['state'].lower()
+#    postcode = row['zip']
+#    confirmation_link = row['confirmation_link'].lower()
+#    posting_day = row['posting_day']
+#    renewal_day = row['renewal_day']
+#    renewal_flag = row['renewal_flag']
+#    
+#    # open link in new window
+#    browser.get(confirmation_link) #opens webpage with get() method on browser object
+#    print('loading %s confirmation link') % (region)
+#    f_out.write(str(email_address) + ',' + str(region) + ',' + str(state) + ',' + str(postcode) + ',' + str(confirmation_link) + \
+#                str(posting_day))
+#    print('written to file: %s, %s, %s, %s, %s, %s') % (email_address, region, state, postcode, confirmation_link, posting_day)    
+#
+#    # is there a post to renew?
+#    try:
+#        browser.find_element_by_css_selector('RENEWAL POSTING CSS THING').click() # click renew posting link
+#        f_out.write('posting confirmed')
+#    except:
+#        # if no, fills a cell in output
+#        f_in.write('no renewal posting found')
+#        
+#f_in.close()
+#print('renewals complete')
